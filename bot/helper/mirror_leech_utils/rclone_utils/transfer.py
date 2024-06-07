@@ -257,11 +257,8 @@ class RcloneTransferHelper:
         method = 'move' if not self.__listener.seed or self.__listener.newDir else 'copy'
         cmd = self.__getUpdatedCommand(
             fconfig_path, path, f'{fremote}:{rc_path}', rcflags, method)
-        if remote_type == 'drive' and not config_dict['RCLONE_FLAGS'] and not self.__listener.rcFlags:
-            cmd.extend(('--drive-chunk-size', '64M',
+        cmd.extend(('--drive-chunk-size', '64M',
                        '--drive-upload-cutoff', '32M'))
-        elif remote_type != 'drive':
-            cmd.extend(('--retries-sleep', '3s'))
 
         result = await self.__start_upload(cmd, remote_type)
         if not result:
@@ -307,12 +304,12 @@ class RcloneTransferHelper:
             config_path, f'{src_remote}:{src_path}', destination, rcflags, 'copy')
         if not rcflags:
             if src_remote_type == 'drive' and dst_remote_type != 'drive':
-                cmd.append('--drive-acknowledge-abuse')
-            elif dst_remote_type == 'drive' and src_remote_type != 'drive':
+                cmd.append('--drive-acknowledge-abuse')            
+            elif src_remote_type == 'drive':
+                cmd.extend(('--tpslimit', '3', '--transfers', '3'))            
+            else dst_remote_type == 'drive' and src_remote_type != 'drive':
                 cmd.extend(('--drive-chunk-size', '64M',
                            '--drive-upload-cutoff', '32M'))
-            elif src_remote_type == 'drive':
-                cmd.extend(('--tpslimit', '3', '--transfers', '3'))
 
         self.__proc = await create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
         _, return_code = await gather(self.__progress(), self.__proc.wait())
